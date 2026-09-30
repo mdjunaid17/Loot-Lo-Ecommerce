@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LootLo - Modern Online Shopping Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1322;
+            color: #f1f5f9;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1322;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        
+        /* Category Card Active State */
+        .category-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .category-card:hover {
+            transform: translateY(-4px);
+        }
+        .category-card.active {
+            border-color: #3b82f6;
+            background-color: #1e293b;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+        }
+        
+        .product-card {
+            transition: all 0.25s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -5px rgba(0, 0, 0, 0.6);
+        }
+        
+        .modal-animate {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-6">
+                <a href="#" onclick="showSection('home')" class="flex items-center gap-2.5">
+                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-600/30">
+                        <i class="fa-solid fa-bag-shopping text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-black tracking-tight text-white">Loot<span class="text-blue-500">Lo</span></span>
+                </a>
+
+                <!-- Desktop Nav Links -->
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+                    <button onclick="showSection('home')" class="hover:text-blue-400 transition py-1">Home</button>
+                    <button onclick="scrollToCategories()" class="hover:text-blue-400 transition py-1">Categories</button>
+                    <button onclick="openModal('contactModal')" class="hover:text-blue-400 transition py-1">Contact Us</button>
+                </nav>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md relative hidden sm:block">
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search products by name or category..." 
+                    class="w-full bg-slate-800/90 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-700/70 placeholder-slate-400 transition">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3.5 top-3.5 text-xs"></i>
+            </div>
+
+            <!-- User Actions & Cart -->
+            <div class="flex items-center gap-3">
+                <!-- User Auth Profile Button -->
+                <div id="userAuthSection">
+                    <button onclick="openModal('authModal')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold border border-slate-700 transition">
+                        <i class="fa-regular fa-user text-blue-400"></i>
+                        <span id="navUserName">Login / Register</span>
+                    </button>
+                </div>
+
+                <!-- Cart Button -->
+                <button onclick="toggleCartModal()" class="relative bg-blue-600 hover:bg-blue-500 p-2.5 px-3.5 rounded-xl text-white transition shadow-lg shadow-blue-600/25 flex items-center gap-2 font-semibold text-sm">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="hidden sm:inline">Cart</span>
+                    <span id="cartCount" class="bg-white text-blue-700 text-xs font-extrabold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar (under nav) -->
+        <div class="px-4 pb-3 sm:hidden">
+            <div class="relative w-full">
+                <input type="text" id="mobileSearchInput" oninput="handleMobileSearch()" placeholder="Search products..." 
+                    class="w-full bg-slate-800 text-slate-200 text-xs rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-700">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-2.5 text-xs"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <!-- Hero Promotional Banner -->
+        <section class="mb-10 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 sm:p-10 border border-slate-800 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="z-10 max-w-lg">
+                <span class="px-3 py-1 bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-bold rounded-full uppercase tracking-wider">Big Festive Sale</span>
+                <h1 class="text-3xl sm:text-5xl font-black text-white mt-3 leading-tight">LATEST FASHION & GADGETS</h1>
+                <p class="text-slate-300 mt-2 text-sm sm:text-base">Get top quality trending items delivered to your doorstep.</p>
+                <div class="mt-4 flex items-center gap-3">
+                    <span class="text-slate-400 text-sm">starting at</span>
+                    <span class="text-2xl font-black text-emerald-400">₹ 499.00</span>
+                </div>
+                <button onclick="scrollToCategories()" class="mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-600/40 transition">
+                    SHOP NOW <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+            <div class="z-10 flex gap-4 items-center">
+                <div class="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl bg-slate-800 border border-slate-700/80 p-2 overflow-hidden shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300" class="w-full h-full object-cover rounded-xl" alt="Smart Watch">
+                </div>
+                <div class="w-28 h-28 sm:w-40 sm:h-40 rounded-2xl bg-slate-800 border border-slate-700/80 p-2 overflow-hidden shadow-2xl transform translate-y-4">
+                    <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=300" class="w-full h-full object-cover rounded-xl" alt="Shoes">
+                </div>
+            </div>
+        </section>
+
+        <!-- Shop By Category Section -->
+        <section id="categoriesSection" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Shop By Category</h2>
+                <p class="text-slate-400 text-sm mt-1">Select a category to view instant filtered products</p>
+            </div>
+
+            <!-- Category Cards Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                <!-- Fashion -->
+                <button onclick="filterCategory('fashion', 'Fashion Collection')" id="cat-fashion" 
+                    class="category-card bg-slate-800/80 hover:bg-slate-800 border-2 border-slate-700/70 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer group text-center">
+                    <div class="p-4 bg-yellow-500/10 group-hover:bg-yellow-500/20 rounded-2xl text-yellow-400 transition">
+                        <i class="fa-solid fa-shirt text-3xl"></i>
+                    </div>
+                    <span class="font-bold text-slate-200 group-hover:text-white text-base">Fashion</span>
+                </button>
+
+                <!-- Footwear -->
+                <button onclick="filterCategory('footwear', 'Footwear Collection')" id="cat-footwear" 
+                    class="category-card bg-slate-800/80 hover:bg-slate-800 border-2 border-slate-700/70 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer group text-center">
+                    <div class="p-4 bg-emerald-500/10 group-hover:bg-emerald-500/20 rounded-2xl text-emerald-400 transition">
+                        <i class="fa-solid fa-shoe-prints text-3xl"></i>
+                    </div>
+                    <span class="font-bold text-slate-200 group-hover:text-white text-base">Footwear</span>
+                </button>
+
+                <!-- Accessories -->
+                <button onclick="filterCategory('accessories', 'Accessories Collection')" id="cat-accessories" 
+                    class="category-card bg-slate-800/80 hover:bg-slate-800 border-2 border-slate-700/70 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer group text-center">
+                    <div class="p-4 bg-sky-500/10 group-hover:bg-sky-500/20 rounded-2xl text-sky-400 transition">
+                        <i class="fa-solid fa-stopwatch text-3xl"></i>
+                    </div>
+                    <span class="font-bold text-slate-200 group-hover:text-white text-base">Accessories</span>
+                </button>
+
+                <!-- Electronics -->
+                <button onclick="filterCategory('electronics', 'Electronics & Gadgets')" id="cat-electronics" 
+                    class="category-card bg-slate-800/80 hover:bg-slate-800 border-2 border-slate-700/70 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer group text-center">
+                    <div class="p-4 bg-purple-500/10 group-hover:bg-purple-500/20 rounded-2xl text-purple-400 transition">
+                        <i class="fa-solid fa-headphones text-3xl"></i>
+                    </div>
+                    <span class="font-bold text-slate-200 group-hover:text-white text-base">Electronics</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                <div>
+                    <h3 id="sectionTitle" class="text-xl sm:text-2xl font-bold text-white">Featured Products</h3>
+                    <p id="productCount" class="text-xs text-slate-400 mt-0.5">Showing all products</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="filterCategory('all', 'Featured Products')" id="cat-all" 
+                        class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Show All Products
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Cards Grid -->
+            <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Injected dynamically using JavaScript -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-16 bg-slate-800/30 rounded-2xl border border-dashed border-slate-700">
+                <i class="fa-solid fa-box-open text-4xl text-slate-500 mb-3"></i>
+                <h4 class="text-lg font-semibold text-slate-300">No products found</h4>
+                <p class="text-slate-500 text-sm mt-1">Try changing category or search terms</p>
+                <button onclick="filterCategory('all', 'Featured Products')" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition">
+                    View All Products
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login & Register Modal -->
+    <div id="authModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 sm:p-8 modal-animate relative shadow-2xl">
+            <button onclick="closeModal('authModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Login Form Tab -->
+            <div id="loginTab">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-white">Welcome Back</h3>
+                    <p class="text-xs text-slate-400 mt-1">Login to access your orders and profile</p>
+                </div>
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+                        <input type="email" id="loginEmail" required placeholder="user@gmail.com" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-600/30">
+                        Login
+                    </button>
+                </form>
+                <p class="text-xs text-center text-slate-400 mt-5">
+                    Don't have an account? <a href="#" onclick="switchAuthTab('register')" class="text-blue-400 hover:underline font-semibold">Register here</a>
+                </p>
+            </div>
+
+            <!-- Register Form Tab -->
+            <div id="registerTab" class="hidden">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-white">Create Account</h3>
+                    <p class="text-xs text-slate-400 mt-1">Join LootLo for exclusive discounts</p>
+                </div>
+                <form onsubmit="handleRegister(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                        <input type="text" id="regName" required placeholder="Rahul Sharma" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+                        <input type="email" id="regEmail" required placeholder="user@gmail.com" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+                        <input type="password" id="regPassword" required placeholder="••••••••" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-600/30">
+                        Register
+                    </button>
+                </form>
+                <p class="text-xs text-center text-slate-400 mt-5">
+                    Already have an account? <a href="#" onclick="switchAuthTab('login')" class="text-blue-400 hover:underline font-semibold">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Us Modal -->
+    <div id="contactModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 sm:p-8 modal-animate relative shadow-2xl">
+            <button onclick="closeModal('contactModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            
+            <div class="text-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Contact Us</h3>
+                <p class="text-xs text-slate-400 mt-1">Have questions or feedback? Send us a message!</p>
+            </div>
+
+            <form onsubmit="handleContact(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Your Name</label>
+                    <input type="text" id="contactName" required placeholder="Enter full name" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+                    <input type="email" id="contactEmail" required placeholder="name@example.com" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Subject</label>
+                    <input type="text" id="contactSubject" required placeholder="Query regarding order" class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Message</label>
+                    <textarea id="contactMessage" rows="3" required placeholder="Type your message here..." class="w-full bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-600/30">
+                    <i class="fa-regular fa-paper-plane mr-2"></i> Send Message
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cart Drawer Side Modal -->
+    <div id="cartModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex justify-end">
+        <div class="w-full max-w-md bg-slate-900 border-l border-slate-800 h-full p-6 flex flex-col justify-between modal-animate">
+            <div>
+                <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-cart-shopping text-blue-500"></i> Shopping Cart
+                    </h3>
+                    <button onclick="toggleCartModal()" class="text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div id="cartItemsList" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    <!-- Dynamic Cart Items -->
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4">
+                <div class="flex justify-between text-base font-semibold text-white mb-4">
+                    <span>Total Amount:</span>
+                    <span id="cartTotal" class="text-xl font-bold text-emerald-400">₹0.00</span>
+                </div>
+                <button onclick="openCheckout()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition">
+                    Proceed to Payment <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Mode Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 sm:p-8 modal-animate relative shadow-2xl">
+            <button onclick="closeModal('paymentModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Select Payment Mode</h3>
+                <p class="text-xs text-slate-400 mt-1">Total Payable Amount: <span id="paymentTotalAmount" class="text-emerald-400 font-bold text-sm">₹0.00</span></p>
+            </div>
+
+            <!-- Payment Options -->
+            <div class="space-y-3 mb-6">
+                <!-- UPI -->
+                <label class="flex items-center justify-between bg-slate-800/80 p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="paymentOption" value="upi" checked class="text-blue-600 focus:ring-blue-500">
+                        <div>
+                            <span class="block text-sm font-semibold text-white">UPI / QR Code</span>
+                            <span class="text-xs text-slate-400">GPay, PhonePe, Paytm, BHIM</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-qrcode text-xl text-blue-400"></i>
+                </label>
+
+                <!-- Cards -->
+                <label class="flex items-center justify-between bg-slate-800/80 p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="paymentOption" value="card" class="text-blue-600 focus:ring-blue-500">
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Credit / Debit Card</span>
+                            <span class="text-xs text-slate-400">Visa, Mastercard, RuPay</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-credit-card text-xl text-emerald-400"></i>
+                </label>
+
+                <!-- NetBanking -->
+                <label class="flex items-center justify-between bg-slate-800/80 p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="paymentOption" value="netbanking" class="text-blue-600 focus:ring-blue-500">
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Net Banking</span>
+                            <span class="text-xs text-slate-400">All Major Indian Banks</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-building-columns text-xl text-purple-400"></i>
+                </label>
+
+                <!-- COD -->
+                <label class="flex items-center justify-between bg-slate-800/80 p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="paymentOption" value="cod" class="text-blue-600 focus:ring-blue-500">
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Cash On Delivery</span>
+                            <span class="text-xs text-slate-400">Pay cash upon delivery</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-money-bill-wave text-xl text-yellow-400"></i>
+                </label>
+            </div>
+
+            <button onclick="processPayment()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-600/30">
+                Confirm & Pay Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Order Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-8 text-center modal-animate relative shadow-2xl">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                <i class="fa-solid fa-check text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white">Order Placed Successfully!</h3>
+            <p class="text-xs text-slate-400 mt-2">Thank you for shopping with LootLo. Your order is being processed.</p>
+            <button onclick="closeModal('successModal')" class="mt-6 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl transition">
+                Continue Shopping
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-blue-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg" class="text-xs font-semibold">Notification</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-8 mt-12 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <div class="bg-blue-600 p-1.5 rounded-lg text-white">
+                    <i class="fa-solid fa-bag-shopping text-sm"></i>
+                </div>
+                <span class="text-base font-bold text-white">Loot<span class="text-blue-500">Lo</span></span>
+            </div>
+            <p>© 2026 LootLo Online Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Data Products Array
+        const products = [
+            { id: 1, name: "Casual Denim Jacket", category: "fashion", price: 1999, originalPrice: 2999, rating: 4.5, image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=400" },
+            { id: 2, name: "Cotton Oversized T-Shirt", category: "fashion", price: 799, originalPrice: 1299, rating: 4.3, image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=400" },
+            { id: 3, name: "Urban Running Sneakers", category: "footwear", price: 2499, originalPrice: 3999, rating: 4.8, image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=400" },
+            { id: 4, name: "Classic Leather Loafers", category: "footwear", price: 3199, originalPrice: 4599, rating: 4.6, image: "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&q=80&w=400" },
+            { id: 5, name: "Luxury Analog Watch", category: "accessories", price: 4999, originalPrice: 7999, rating: 4.9, image: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=400" },
+            { id: 6, name: "Polarized Sunglasses", category: "accessories", price: 1299, originalPrice: 1999, rating: 4.4, image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=400" },
+            { id: 7, name: "Wireless ANC Headphones", category: "electronics", price: 5999, originalPrice: 8999, rating: 4.7, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=400" },
+            { id: 8, name: "Smart Fitness Watch", category: "electronics", price: 1899, originalPrice: 2999, rating: 4.2, image: "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&q=80&w=400" }
+        ];
+
+        let cart = [];
+        let currentCategory = 'all';
+        let currentUser = null;
+
+        // Render products list
+        function renderProducts(items) {
+            const grid = document.getElementById('productGrid');
+            const emptyState = document.getElementById('emptyState');
+            const productCount = document.getElementById('productCount');
+
+            grid.innerHTML = '';
+            productCount.textContent = `Showing ${items.length} product(s)`;
+
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            items.forEach(product => {
+                const card = document.createElement('div');
+                card.className = "product-card bg-slate-800/80 rounded-2xl border border-slate-700/70 overflow-hidden flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="relative overflow-hidden group h-48 bg-slate-900">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <span class="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-xs font-semibold px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 capitalize">
+                                ${product.category}
+                            </span>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center gap-1 text-amber-400 text-xs mb-1">
+                                <i class="fa-solid fa-star"></i>
+                                <span class="font-bold">${product.rating}</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-100 text-sm leading-snug line-clamp-2">${product.name}</h4>
+                            <div class="mt-3 flex items-baseline gap-2">
+                                <span class="text-lg font-bold text-white">₹${product.price.toLocaleString('en-IN')}</span>
+                                <span class="text-xs text-slate-400 line-through">₹${product.originalPrice.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 grid grid-cols-2 gap-2">
+                        <button onclick="addToCart(${product.id})" class="py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-cart-plus"></i> Cart
+                        </button>
+                        <button onclick="buyNow(${product.id})" class="py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+                            Buy Now
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Category Filter
+        function filterCategory(cat, title) {
+            currentCategory = cat;
+            document.getElementById('sectionTitle').textContent = title;
+
+            document.querySelectorAll('.category-card').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`cat-${cat}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            document.getElementById('searchInput').value = '';
+
+            if (cat === 'all') {
+                renderProducts(products);
+            } else {
+                const filtered = products.filter(p => p.category === cat);
+                renderProducts(filtered);
+            }
+        }
+
+        // Search Handlers
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filterByQuery(query);
+        }
+
+        function handleMobileSearch() {
+            const query = document.getElementById('mobileSearchInput').value.toLowerCase();
+            filterByQuery(query);
+        }
+
+        function filterByQuery(query) {
+            const filtered = products.filter(p => {
+                const matchesCategory = currentCategory === 'all' || p.category === currentCategory;
+                const matchesQuery = p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query);
+                return matchesCategory && matchesQuery;
+            });
+            renderProducts(filtered);
+        }
+
+        // Cart Actions
+        function addToCart(productId) {
+            const item = products.find(p => p.id === productId);
+            const existing = cart.find(c => c.id === productId);
+
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ ...item, qty: 1 });
+            }
+
+            updateCartUI();
+            showToast(`Added "${item.name}" to cart`);
+        }
+
+        function buyNow(productId) {
+            addToCart(productId);
+            openCheckout();
+        }
+
+        function updateCartUI() {
+            const countElem = document.getElementById('cartCount');
+            const listElem = document.getElementById('cartItemsList');
+            const totalElem = document.getElementById('cartTotal');
+
+            const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            countElem.textContent = totalItems;
+            totalElem.textContent = `₹${totalPrice.toLocaleString('en-IN')}`;
+
+            if (cart.length === 0) {
+                listElem.innerHTML = `<p class="text-slate-500 text-xs text-center py-8">Your cart is currently empty.</p>`;
+                return;
+            }
+
+            listElem.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <div class="flex items-center gap-3">
+                        <img src="${item.image}" class="w-12 h-12 object-cover rounded-lg bg-slate-900" alt="">
+                        <div>
+                            <h5 class="text-xs font-semibold text-slate-100 line-clamp-1">${item.name}</h5>
+                            <span class="text-xs text-emerald-400 font-bold">₹${item.price.toLocaleString('en-IN')} x ${item.qty}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeQty(${item.id}, -1)" class="w-6 h-6 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-600">-</button>
+                        <span class="text-xs font-bold text-white">${item.qty}</span>
+                        <button onclick="changeQty(${item.id}, 1)" class="w-6 h-6 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-600">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function changeQty(productId, delta) {
+            const item = cart.find(c => c.id === productId);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    cart = cart.filter(c => c.id !== productId);
+                }
+                updateCartUI();
+            }
+        }
+
+        // Modals & Navigation Helpers
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function toggleCartModal() {
+            const modal = document.getElementById('cartModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function switchAuthTab(tab) {
+            if (tab === 'register') {
+                document.getElementById('loginTab').classList.add('hidden');
+                document.getElementById('registerTab').classList.remove('hidden');
+            } else {
+                document.getElementById('registerTab').classList.add('hidden');
+                document.getElementById('loginTab').classList.remove('hidden');
+            }
+        }
+
+        // User Login / Register Logic
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            currentUser = email.split('@')[0];
+            updateUserNav();
+            closeModal('authModal');
+            showToast(`Welcome back, ${currentUser}!`);
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            currentUser = name;
+            updateUserNav();
+            closeModal('authModal');
+            showToast(`Account created for ${currentUser}!`);
+        }
+
+        function updateUserNav() {
+            if (currentUser) {
+                document.getElementById('navUserName').textContent = currentUser;
+            }
+        }
+
+        // Contact Us
+        function handleContact(e) {
+            e.preventDefault();
+            closeModal('contactModal');
+            showToast('Thank you! Your message has been sent.');
+            e.target.reset();
+        }
+
+        // Checkout & Payment
+        function openCheckout() {
+            if (cart.length === 0) {
+                showToast('Your cart is empty!');
+                return;
+            }
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            document.getElementById('paymentTotalAmount').textContent = `₹${totalPrice.toLocaleString('en-IN')}`;
+            closeModal('cartModal');
+            openModal('paymentModal');
+        }
+
+        function processPayment() {
+            closeModal('paymentModal');
+            cart = [];
+            updateCartUI();
+            openModal('successModal');
+        }
+
+        function scrollToCategories() {
+            document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // Initialize App
+        window.onload = function() {
+            renderProducts(products);
+        };
+    </script>
+</body>
+</html
